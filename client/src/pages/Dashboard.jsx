@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Link as LinkIcon, Type, Settings2, Download, Copy, Play, Loader2, Zap, PlayCircle, BookOpen } from 'lucide-react';
+import { FileText, Link as LinkIcon, Type, Settings2, Download, Copy, Play, Loader2, Zap, BookOpen } from 'lucide-react';
 import axios from 'axios';
-import YouTubePlayer from '../components/YouTubePlayer';
 import NotesGenerator from '../components/NotesGenerator';
 import PdfHighlighter from '../components/PdfHighlighter';
 
@@ -10,7 +9,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('text');
   const [inputText, setInputText] = useState('');
   const [inputUrl, setInputUrl] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [file, setFile] = useState(null);
   
   const [length, setLength] = useState('Medium');
@@ -39,8 +37,6 @@ export default function Dashboard() {
         res = await axios.post(`${API_BASE}/api/summarize/text`, { text: inputText, length, style, eli5 });
       } else if (activeTab === 'url') {
         res = await axios.post(`${API_BASE}/api/summarize/url`, { url: inputUrl, length, style, eli5 });
-      } else if (activeTab === 'youtube') {
-        res = await axios.post(`${API_BASE}/api/summarize/youtube`, { url: youtubeUrl });
       } else if (activeTab === 'file') {
         const formData = new FormData();
         formData.append('file', file);
@@ -150,8 +146,7 @@ export default function Dashboard() {
               {[
                 { id: 'text', icon: Type, label: 'Text' },
                 { id: 'file', icon: FileText, label: 'Document' },
-                { id: 'url', icon: LinkIcon, label: 'URL' },
-                { id: 'youtube', icon: PlayCircle, label: 'YouTube' }
+                { id: 'url', icon: LinkIcon, label: 'URL' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -189,17 +184,6 @@ export default function Dashboard() {
                   />
                 </div>
               )}
-              {activeTab === 'youtube' && (
-                <div className="flex-1 flex items-center justify-center">
-                  <input
-                    type="url"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full max-w-md bg-background/50 border border-border rounded-xl p-4 focus:ring-2 focus:ring-red-500 focus:outline-none"
-                  />
-                </div>
-              )}
               {activeTab === 'file' && (
                 <div className="flex-1 flex items-center justify-center border-2 border-dashed border-border rounded-xl bg-background/20 hover:bg-background/40 transition-colors relative">
                   <input 
@@ -220,39 +204,37 @@ export default function Dashboard() {
         )}
 
         {/* Options Panel */}
-        {activeTab !== 'youtube' && (
-          <div className="glass rounded-2xl p-6">
-            <h3 className="font-bold mb-4 flex items-center gap-2"><Settings2 size={18}/> Summary Options</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Length</label>
-                <select value={length} onChange={(e) => setLength(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5">
-                  <option>Short</option>
-                  <option>Medium</option>
-                  <option>Detailed</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Style</label>
-                <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5">
-                  <option>Paragraph</option>
-                  <option>Bullet Points</option>
-                  <option>Key Insights</option>
-                </select>
-              </div>
-              <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={eli5} onChange={(e) => setEli5(e.target.checked)} className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-                  <span className="font-medium">Explain Like I'm 5</span>
-                </label>
-              </div>
+        <div className="glass rounded-2xl p-6">
+          <h3 className="font-bold mb-4 flex items-center gap-2"><Settings2 size={18}/> Summary Options</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-2 block">Length</label>
+              <select value={length} onChange={(e) => setLength(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5">
+                <option>Short</option>
+                <option>Medium</option>
+                <option>Detailed</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-2 block">Style</label>
+              <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-background border border-border rounded-lg p-2.5">
+                <option>Paragraph</option>
+                <option>Bullet Points</option>
+                <option>Key Insights</option>
+              </select>
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={eli5} onChange={(e) => setEli5(e.target.checked)} className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span className="font-medium">Explain Like I'm 5</span>
+              </label>
             </div>
           </div>
-        )}
+        </div>
         
         <button 
           onClick={handleSummarize}
-          disabled={loading || (activeTab === 'text' && !inputText) || (activeTab === 'url' && !inputUrl) || (activeTab === 'youtube' && !youtubeUrl) || (activeTab === 'file' && !file)}
+          disabled={loading || (activeTab === 'text' && !inputText) || (activeTab === 'url' && !inputUrl) || (activeTab === 'file' && !file)}
           className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-lg shadow-lg"
         >
           {loading ? <Loader2 className="animate-spin" /> : <Zap size={20} />}
@@ -264,9 +246,9 @@ export default function Dashboard() {
       <div className={`flex-1 glass rounded-2xl p-6 flex flex-col bg-gradient-to-b from-background/40 to-background/10 border-t-4 border-t-primary ${isPDF && result && !result.error ? 'lg:w-1/2' : ''}`}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-foreground">
-            {activeTab === 'youtube' ? 'Video Insights' : 'AI Summary'}
+            AI Summary
           </h2>
-          {result && !result.error && activeTab !== 'youtube' && (
+          {result && !result.error && (
             <div className="flex gap-2">
               <button 
                 onClick={() => setViewMode('summary')}
@@ -313,11 +295,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {result && !result.error && activeTab === 'youtube' && (
-            <YouTubePlayer result={result} youtubeUrl={youtubeUrl} />
-          )}
-
-          {result && !result.error && activeTab !== 'youtube' && viewMode === 'summary' && (
+          {result && !result.error && viewMode === 'summary' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
               <div className="flex gap-4 p-4 rounded-xl bg-background/50 border border-border">
                 <div className="flex-1 text-center">
@@ -347,7 +325,7 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {result && !result.error && activeTab !== 'youtube' && viewMode === 'notes' && notesData && (
+          {result && !result.error && viewMode === 'notes' && notesData && (
             <NotesGenerator notesData={notesData} />
           )}
         </div>

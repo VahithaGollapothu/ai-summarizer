@@ -1,3 +1,9 @@
+import Groq from "groq-sdk";
+
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+});
+
 export default async function handler(req, res) {
 
     if (req.method !== "POST") {
@@ -16,8 +22,21 @@ export default async function handler(req, res) {
             });
         }
 
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "user",
+                    content: `Summarize this text:\n\n${text}`,
+                },
+            ],
+            model: "llama3-8b-8192",
+        });
+
+        const summary =
+            chatCompletion.choices[0]?.message?.content || "No summary generated";
+
         return res.status(200).json({
-            summary: "Backend API working"
+            summary,
         });
 
     } catch (error) {
@@ -25,7 +44,7 @@ export default async function handler(req, res) {
         console.error(error);
 
         return res.status(500).json({
-            error: error.message
+            error: error.message,
         });
 
     }

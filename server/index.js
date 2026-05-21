@@ -248,6 +248,12 @@ app.post('/api/notes/generate', async (req, res) => {
   }
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Express Global Error:", err);
+  res.status(500).json({ error: "Internal Express Server Error: " + err.message });
+});
+
 // Export app for Vercel
 module.exports = app;
 

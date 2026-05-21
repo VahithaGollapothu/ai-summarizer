@@ -76,8 +76,9 @@ async function summarizeText(text, length = 'Medium', style = 'Paragraph', eli5 
     });
     return chatCompletion.choices[0]?.message?.content || "Could not generate summary from Groq.";
   } catch (error) {
-    console.error("API Error:", error?.response?.data || error);
-    throw new Error("Failed to summarize text");
+    console.error("API Error:", error?.response?.data || error.message);
+    const apiErrorMsg = error?.response?.data?.error?.message || error.message;
+    throw new Error(`AI API Error: ${apiErrorMsg}`);
   }
 }
 

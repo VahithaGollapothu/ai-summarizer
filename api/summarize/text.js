@@ -14,18 +14,29 @@ export default async function handler(req, res) {
 
     try {
 
-        const { text } = req.body;
+        const { text, length = 'Medium', style = 'Paragraph', eli5 = false } = req.body;
 
         if (!text) {
             return res.status(400).json({
                 error: "Text is required"
             });
         }
+
+        let prompt = `Summarize the following text.\nLength: ${length}\nStyle: ${style}\n`;
+        if (eli5) {
+            prompt += "Explain it like I'm 5 years old (ELI5).\n";
+        }
+        prompt += `\nText:\n${text}`;
+
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
+                    role: "system",
+                    content: "You are a highly capable AI assistant that summarizes text accurately. Return the output as a plain string.",
+                },
+                {
                     role: "user",
-                    content: `Summarize this text:\n\n${text}`,
+                    content: prompt,
                 },
             ],
             model: "llama-3.1-8b-instant",
@@ -36,6 +47,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             summary,
+            originalLength: text.split(' ').length,
         });
 
     } catch (error) {

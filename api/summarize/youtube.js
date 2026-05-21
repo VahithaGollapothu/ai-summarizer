@@ -10,22 +10,30 @@ async function generateYoutubeStructuredData(text) {
     const prompt = `
 Summarize this YouTube transcript.
 
-Return ONLY valid JSON with these 4 keys:
-- shortSummary
-- detailedSummary
-- keyTakeaways (array of strings)
-- timestamps (array of objects with time and description)
+Return ONLY valid JSON in this format:
+
+{
+  "shortSummary": "...",
+  "detailedSummary": "...",
+  "keyTakeaways": ["...", "..."],
+  "timestamps": [
+    {
+      "time": "0:00",
+      "description": "..."
+    }
+  ]
+}
 
 Transcript:
-${text.substring(0, 10000)}
+${text.substring(0, 8000)}
 `;
 
-    const chatCompletion = await groq.chat.completions.create({
+    const completion = await groq.chat.completions.create({
         messages: [
             {
                 role: "system",
                 content:
-                    "You are a helpful AI assistant. Respond ONLY with valid JSON.",
+                    "You are an AI assistant that ONLY returns valid JSON.",
             },
             {
                 role: "user",
@@ -36,10 +44,19 @@ ${text.substring(0, 10000)}
         response_format: { type: "json_object" },
     });
 
-    const rawContent =
-        chatCompletion.choices[0]?.message?.content || "{}";
+    const raw =
+        completion.choices[0]?.message?.content || "{}";
 
-    return JSON.parse(rawContent);
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return {
+            shortSummary: "Summary generated",
+            detailedSummary: raw,
+            keyTakeaways: [],
+            timestamps: [],
+        };
+    }
 }
 
 export default async function handler(req, res) {
@@ -52,6 +69,8 @@ export default async function handler(req, res) {
 
     try {
 
+        console.log("BODY:", req.body);
+
         const { url } = req.body;
 
         if (!url) {
@@ -60,34 +79,36 @@ export default async function handler(req, res) {
             });
         }
 
-        // Convert Shorts URL to normal URL
+        // Convert shorts URL
         let cleanUrl = url;
 
         if (url.includes("/shorts/")) {
-            const id = url.split("/shorts/")[1].split("?")[0];
-            cleanUrl = `https://www.youtube.com/watch?v=${id}`;
+            const id =
+                url.split("/shorts/")[1].split("?")[0];
+
+            cleanUrl =
+                `https://www.youtube.com/watch?v=${id}`;
         }
 
-        // Fetch transcript
+        console.log("FETCHING TRANSCRIPT");
+
         const transcript =
-            await YoutubeTranscript.fetchTranscript(cleanUrl);
+            await YoutubeTranscript.fetchTranscript(
+                cleanUrl
+            );
 
         if (!transcript || transcript.length === 0) {
             throw new Error("Transcript unavailable");
         }
 
-        // Combine transcript text
-        const text = transcript.map((t) => t.text).join(" ");
+        const text = transcript
+            .map((t) => t.text)
+            .join(" ");
 
-        // Generate AI summary
+        console.log("GENERATING SUMMARY");
+
         const data =
             await generateYoutubeStructuredData(text);
-
-        if (!data) {
-            throw new Error(
-                "Failed to generate YouTube summary data"
-            );
-        }
 
         return res.status(200).json({
             ...data,
@@ -96,32 +117,18 @@ export default async function handler(req, res) {
 
     } catch (err) {
 
-        console.error("FULL YOUTUBE ERROR:", err);
+        console.error("YOUTUBE API ERROR:", err);
 
         return res.status(200).json({
-            shortSummary: "Transcript unavailable",
+            shortSummary: "Transcript unavailable.",
             detailedSummary:
-                "Could not retrieve transcript from this video. Try another video with captions enabled.",
+                "This video may not support captions or transcript extraction.",
             keyTakeaways: [
-                "Transcript fetch failed",
-                "Video may not support captions"
+                "Transcript could not be fetched",
+                "Try another YouTube video",
             ],
             timestamps: [],
-            warning: err.message || "Unknown error"
+            warning: err.message || "Unknown error",
         });
     }
-
-    // Transcript disabled/private/etc
-    return res.status(200).json({
-        shortSummary: "Transcript unavailable.",
-        detailedSummary:
-            "This video may have captions disabled, be private, age restricted, or unsupported.",
-        keyTakeaways: [
-            "Could not fetch transcript",
-            "Try another YouTube video",
-        ],
-        timestamps: [],
-        warning: err.message,
-    });
-}
 }

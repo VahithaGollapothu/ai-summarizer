@@ -66,7 +66,18 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error(error);
-      const errorMessage = error.response?.data?.error || "Failed to generate summary. Make sure the backend is running and the API key is set.";
+      let errorMessage = "Failed to generate summary. Make sure the backend is running and the API key is set.";
+      
+      if (error.response?.data?.error) {
+        if (typeof error.response.data.error === 'string') {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.error.message) {
+          errorMessage = error.response.data.error.message;
+        } else {
+          errorMessage = JSON.stringify(error.response.data.error);
+        }
+      }
+      
       setResult({ error: errorMessage });
     }
     setLoading(false);

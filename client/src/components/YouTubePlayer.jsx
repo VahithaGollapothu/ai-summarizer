@@ -42,18 +42,18 @@ export default function YouTubePlayer({ result, youtubeUrl }) {
   return (
     <div className="space-y-6">
       <div className="aspect-video w-full rounded-xl overflow-hidden bg-black/50 border border-border flex items-center justify-center relative group">
-         {/* Embedded YouTube Player */}
-         <iframe 
-            ref={iframeRef}
-            width="100%" 
-            height="100%" 
-            src={`https://www.youtube.com/embed/${extractVideoId(youtubeUrl)}?controls=1&enablejsapi=1`}
-            title="YouTube video player" 
-            frameBorder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowFullScreen
-            className="absolute inset-0"
-          ></iframe>
+        {/* Embedded YouTube Player */}
+        <iframe
+          ref={iframeRef}
+          width="100%"
+          height="100%"
+          src={`https://www.youtube.com/embed/${extractVideoId(youtubeUrl)}?controls=1&enablejsapi=1`}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0"
+        ></iframe>
       </div>
 
       <div className="glass p-6 rounded-xl space-y-6">
@@ -61,7 +61,7 @@ export default function YouTubePlayer({ result, youtubeUrl }) {
           <h3 className="text-xl font-bold mb-2">Short Summary</h3>
           <p className="text-muted-foreground">{result.shortSummary}</p>
         </div>
-        
+
         <div>
           <h3 className="text-xl font-bold mb-2">Detailed Analysis</h3>
           <p className="text-muted-foreground">{result.detailedSummary}</p>
@@ -80,7 +80,7 @@ export default function YouTubePlayer({ result, youtubeUrl }) {
           <h3 className="text-xl font-bold mb-3">Important Moments</h3>
           <div className="space-y-3">
             {result.timestamps?.map((ts, i) => (
-              <button 
+              <button
                 key={i}
                 onClick={() => handleTimestampClick(ts.time)}
                 className="w-full flex items-center gap-4 p-3 rounded-lg bg-background/50 hover:bg-primary/20 transition-colors border border-border hover:border-primary/50 text-left"

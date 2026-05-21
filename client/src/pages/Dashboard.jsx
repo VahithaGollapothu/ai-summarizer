@@ -30,21 +30,24 @@ export default function Dashboard() {
     setResult(null);
     setNotesData(null);
     setViewMode('summary');
+    
+    const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:5000';
+    
     try {
       let res;
       if (activeTab === 'text') {
-        res = await axios.post('http://localhost:5000/api/summarize/text', { text: inputText, length, style, eli5 });
+        res = await axios.post(`${API_BASE}/api/summarize/text`, { text: inputText, length, style, eli5 });
       } else if (activeTab === 'url') {
-        res = await axios.post('http://localhost:5000/api/summarize/url', { url: inputUrl, length, style, eli5 });
+        res = await axios.post(`${API_BASE}/api/summarize/url`, { url: inputUrl, length, style, eli5 });
       } else if (activeTab === 'youtube') {
-        res = await axios.post('http://localhost:5000/api/summarize/youtube', { url: youtubeUrl });
+        res = await axios.post(`${API_BASE}/api/summarize/youtube`, { url: youtubeUrl });
       } else if (activeTab === 'file') {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('length', length);
         formData.append('style', style);
         formData.append('eli5', eli5);
-        res = await axios.post('http://localhost:5000/api/summarize/file', formData);
+        res = await axios.post(`${API_BASE}/api/summarize/file`, formData);
       }
       setResult(res.data);
       
@@ -74,8 +77,11 @@ export default function Dashboard() {
     const textToUse = result.extractedText || inputText;
     
     setGeneratingNotes(true);
+    
+    const API_BASE = import.meta.env.PROD ? '' : 'http://localhost:5000';
+    
     try {
-      const res = await axios.post('http://localhost:5000/api/notes/generate', { text: textToUse });
+      const res = await axios.post(`${API_BASE}/api/notes/generate`, { text: textToUse });
       setNotesData(res.data);
       setViewMode('notes');
     } catch (error) {

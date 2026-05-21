@@ -15,8 +15,8 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Setup multer for temporary file uploads
-const upload = multer({ dest: 'uploads/' });
+// Setup multer for memory storage (required for Vercel Serverless)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Initialize Groq SDK (requires GROQ_API_KEY in .env)
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key' });
@@ -141,27 +141,23 @@ app.post('/api/summarize/file', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "File is required" });
   
   const { length, style, eli5 } = req.body;
-  const fs = require('fs');
-  const filePath = req.file.path;
   const mimeType = req.file.mimetype;
+  const fileBuffer = req.file.buffer;
 
   try {
     let extractedText = '';
 
     if (mimeType === 'application/pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdfParse(dataBuffer);
+      const data = await pdfParse(fileBuffer);
       extractedText = data.text;
     } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const result = await mammoth.extractRawText({ path: filePath });
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
       extractedText = result.value;
     } else if (mimeType === 'text/plain') {
-      extractedText = fs.readFileSync(filePath, 'utf8');
+      extractedText = fileBuffer.toString('utf8');
     } else {
       throw new Error("Unsupported file format");
     }
-
-    fs.unlinkSync(filePath);
 
     const summary = await summarizeText(extractedText, length, style, eli5 === 'true');
     const keywordsData = await generateStructuredData(extractedText, 'keywords');
@@ -173,7 +169,6 @@ app.post('/api/summarize/file', upload.single('file'), async (req, res) => {
       extractedText // Return extracted text so frontend can use it to generate notes if needed
     });
   } catch (err) {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.status(500).json({ error: err.message });
   }
 });
@@ -253,6 +248,11 @@ app.post('/api/notes/generate', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Export app for Vercel
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}

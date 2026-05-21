@@ -21,7 +21,6 @@ export default async function handler(req, res) {
                 error: "Text is required"
             });
         }
-
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
@@ -29,7 +28,7 @@ export default async function handler(req, res) {
                     content: `Summarize this text:\n\n${text}`,
                 },
             ],
-            model: "llama3-8b-8192",
+            model: "llama-3.1-8b-instant",
         });
 
         const summary =

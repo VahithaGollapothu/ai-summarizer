@@ -1,5 +1,5 @@
 import multer from 'multer';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import Groq from 'groq-sdk';
 
@@ -66,8 +66,13 @@ export default async function handler(req, res) {
         let extractedText = '';
 
         if (mimeType === 'application/pdf') {
-            const data = await pdfParse(fileBuffer);
-            extractedText = data.text;
+            const parser = new PDFParse({ data: fileBuffer });
+            try {
+                const data = await parser.getText();
+                extractedText = data.text;
+            } finally {
+                await parser.destroy();
+            }
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
             const result = await mammoth.extractRawText({ buffer: fileBuffer });
             extractedText = result.value;

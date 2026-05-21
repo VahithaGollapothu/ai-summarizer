@@ -96,31 +96,32 @@ export default async function handler(req, res) {
 
     } catch (err) {
 
-        console.error("YouTube Error:", err);
+        console.error("FULL YOUTUBE ERROR:", err);
 
-        // Invalid URL
-        if (
-            err.message?.includes(
-                "Impossible to retrieve Youtube video ID"
-            )
-        ) {
-            return res.status(400).json({
-                error:
-                    "Invalid YouTube URL. Please provide a valid link.",
-            });
-        }
-
-        // Transcript disabled/private/etc
         return res.status(200).json({
-            shortSummary: "Transcript unavailable.",
+            shortSummary: "Transcript unavailable",
             detailedSummary:
-                "This video may have captions disabled, be private, age restricted, or unsupported.",
+                "Could not retrieve transcript from this video. Try another video with captions enabled.",
             keyTakeaways: [
-                "Could not fetch transcript",
-                "Try another YouTube video",
+                "Transcript fetch failed",
+                "Video may not support captions"
             ],
             timestamps: [],
-            warning: err.message,
+            warning: err.message || "Unknown error"
         });
     }
+
+    // Transcript disabled/private/etc
+    return res.status(200).json({
+        shortSummary: "Transcript unavailable.",
+        detailedSummary:
+            "This video may have captions disabled, be private, age restricted, or unsupported.",
+        keyTakeaways: [
+            "Could not fetch transcript",
+            "Try another YouTube video",
+        ],
+        timestamps: [],
+        warning: err.message,
+    });
+}
 }

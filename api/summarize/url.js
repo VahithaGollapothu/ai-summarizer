@@ -6,33 +6,6 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
 
-async function generateSummary(text) {
-
-    const completion =
-        await groq.chat.completions.create({
-
-            messages: [
-                {
-                    role: "system",
-                    content:
-                        "Summarize the content clearly."
-                },
-
-                {
-                    role: "user",
-                    content: text.slice(0, 12000)
-                }
-            ],
-
-            model: "llama-3.1-8b-instant",
-        });
-
-    return (
-        completion.choices[0]?.message?.content
-        || "No summary generated."
-    );
-}
-
 export default async function handler(req, res) {
 
     if (req.method !== "POST") {
@@ -56,42 +29,99 @@ export default async function handler(req, res) {
         /**
          * FETCH WEBSITE
          */
-        const response = await axios.get(url, {
+        let html = "";
 
-            headers: {
-                "User-Agent":
-                    "Mozilla/5.0"
-            },
+        try {
 
-            timeout: 10000,
-        });
+            const response = await axios.get(url, {
 
-        /**
-         * PARSE HTML
-         */
-        const $ = cheerio.load(response.data);
+                headers: {
+                    "User-Agent":
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                },
 
-        $("script").remove();
-        $("style").remove();
+                timeout: 15000,
+            });
 
-        const text =
-            $("body").text()
-                .replace(/\s+/g, " ")
-                .trim();
+            html = response.data;
 
-        if (!text || text.length < 100) {
+        } catch (fetchError) {
 
-            return res.status(400).json({
-                error:
-                    "Could not extract enough text from this website."
+            console.error(
+                "Website Fetch Error:",
+                fetchError.message
+            );
+
+            return res.status(200).json({
+
+                summary:
+                    "This website blocks automated scraping requests. Try another article or website.",
+
+                warning:
+                    fetchError.message
             });
         }
 
         /**
-         * GENERATE SUMMARY
+         * PARSE HTML
          */
+        const $ = cheerio.load(html);
+
+        $("script").remove();
+        $("style").remove();
+        $("noscript").remove();
+
+        const text =
+            $("body")
+                .text()
+                .replace(/\s+/g, " ")
+                .trim();
+
+        if (!text || text.length < 200) {
+
+            return res.status(200).json({
+
+                summary:
+                    "Could not extract enough readable content from this website."
+            });
+        }
+
+        /**
+         * LIMIT TEXT
+         */
+        const limitedText =
+            text.slice(0, 12000);
+
+        /**
+         * AI SUMMARY
+         */
+        const completion =
+            await groq.chat.completions.create({
+
+                model: "llama-3.1-8b-instant",
+
+                messages: [
+
+                    {
+                        role: "system",
+
+                        content:
+                            "Summarize the article clearly in concise bullet points."
+                    },
+
+                    {
+                        role: "user",
+
+                        content: limitedText
+                    }
+                ],
+
+                temperature: 0.3,
+            });
+
         const summary =
-            await generateSummary(text);
+            completion.choices?.[0]?.message?.content
+            || "No summary generated.";
 
         return res.status(200).json({
             summary
@@ -100,14 +130,17 @@ export default async function handler(req, res) {
     } catch (error) {
 
         console.error(
-            "URL Summarizer Error:",
-            error.message
+            "URL Summarizer Fatal Error:",
+            error
         );
 
-        return res.status(500).json({
+        return res.status(200).json({
+
+            summary:
+                "Something went wrong while processing the URL.",
 
             error:
-                "Failed to fetch URL. Website may block automated requests."
+                error.message
         });
     }
 }
